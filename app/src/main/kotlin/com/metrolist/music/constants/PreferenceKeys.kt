@@ -126,6 +126,11 @@ val RememberShuffleAndRepeatKey = booleanPreferencesKey("rememberShuffleAndRepea
 val ShuffleModeKey = booleanPreferencesKey("shuffleMode")
 val SkipSilenceKey = booleanPreferencesKey("skipSilence")
 val SkipSilenceInstantKey = booleanPreferencesKey("skipSilenceInstant")
+// Auralys Extended
+val BassBoostEnabledKey = booleanPreferencesKey("bassBoostEnabled")
+val BassBoostStrengthKey = intPreferencesKey("bassBoostStrength")
+val VirtualizerEnabledKey = booleanPreferencesKey("virtualizerEnabled")
+val VirtualizerStrengthKey = intPreferencesKey("virtualizerStrength")
 val AudioNormalizationKey = booleanPreferencesKey("audioNormalization")
 
 val LoudnessLevelKey = stringPreferencesKey("loudnessLevel")
@@ -429,6 +434,26 @@ enum class PlayerBackgroundStyle {
     GRADIENT,
     BLUR,
 }
+
+/**
+ * Auralys Extended: selectable now-playing skins ("marketplace").
+ * Each skin is a self-contained render recipe over the album art + background.
+ */
+enum class NowPlayingSkin(val id: String, val label: String) {
+    CLASSIC("classic", "Classic"),
+    VINYL("vinyl", "Vinyl"),
+    CASSETTE("cassette", "Cassette"),
+    TYPOGRAPHIC("typographic", "Typographic"),
+    LIQUID_GLASS("liquid_glass", "Liquid Glass"),
+    MINIMAL_MONO("minimal_mono", "Minimal Mono");
+
+    companion object {
+        fun fromId(id: String?): NowPlayingSkin =
+            entries.firstOrNull { it.id == id } ?: CLASSIC
+    }
+}
+
+val NowPlayingSkinKey = stringPreferencesKey("nowPlayingSkin")
 
 val TopSize = stringPreferencesKey("topSize")
 val HistoryDuration = floatPreferencesKey("historyDuration")

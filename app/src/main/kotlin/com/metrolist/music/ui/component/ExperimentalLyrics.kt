@@ -87,6 +87,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.metrolist.music.LocalDatabase
 import com.metrolist.music.LocalListenTogetherManager
 import com.metrolist.music.LocalPlayerConnection
+import com.metrolist.music.playback.queues.LyricSegmentRadio
 import com.metrolist.music.R
 import com.metrolist.music.constants.AiProviderKey
 import com.metrolist.music.constants.AiSystemPromptKey
@@ -822,6 +823,17 @@ fun ExperimentalLyrics(
                     showShareDialog = true
                 }
                 isSelectionModeActive = false; selectedIndices.clear()
+            },
+            // Auralys Extended: start a radio from the selected lyric segment
+            onLyricRadio = {
+                val seed = selectedIndices.sorted().mapNotNull { lines.getOrNull(it)?.text }.joinToString(" ")
+                isSelectionModeActive = false; selectedIndices.clear()
+                if (seed.isNotBlank() && mediaMetadata != null) {
+                    val current = playerConnection.player.currentMediaItem
+                    if (current != null) {
+                        playerConnection.playQueue(LyricSegmentRadio(seed, current))
+                    }
+                }
             }
         )
     }

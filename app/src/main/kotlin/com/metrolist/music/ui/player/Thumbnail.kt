@@ -74,6 +74,9 @@ import com.metrolist.music.LocalListenTogetherManager
 import com.metrolist.music.LocalPlayerConnection
 import com.metrolist.music.R
 import com.metrolist.music.constants.CropAlbumArtKey
+import com.metrolist.music.constants.NowPlayingSkin
+import com.metrolist.music.constants.NowPlayingSkinKey
+import com.metrolist.music.ui.player.skins.NowPlayingSkins
 import com.metrolist.music.constants.HidePlayerThumbnailKey
 import com.metrolist.music.constants.PlayerBackgroundStyle
 import com.metrolist.music.constants.PlayerBackgroundStyleKey
@@ -220,6 +223,8 @@ fun Thumbnail(
     val swipeThumbnail = swipeThumbnailPref && !isListenTogetherGuest
     val hidePlayerThumbnail by rememberPreference(HidePlayerThumbnailKey, false)
     val cropAlbumArt by rememberPreference(CropAlbumArtKey, false)
+    // Auralys Extended: active now-playing skin ("marketplace")
+    val activeNowPlayingSkin by rememberPreference(NowPlayingSkinKey, "classic")
     val playerBackground by rememberEnumPreference(
         key = PlayerBackgroundStyleKey,
         defaultValue = PlayerBackgroundStyle.DEFAULT
@@ -504,6 +509,7 @@ private fun ThumbnailItem(
     modifier: Modifier = Modifier,
 ) {
     val incrementalSeekSkipEnabled by rememberPreference(SeekExtraSeconds, defaultValue = false)
+    val activeNowPlayingSkin by rememberPreference(NowPlayingSkinKey, "classic")
     var skipMultiplier by remember { mutableIntStateOf(1) }
     var lastTapTime by remember { mutableLongStateOf(0L) }
 
@@ -570,10 +576,28 @@ private fun ThumbnailItem(
                     item.mediaMetadata.artworkUri?.toString()
                 }
 
-                ThumbnailImage(
-                    artworkUri = artworkUriToUse,
-                    cropArtwork = cropAlbumArt
-                )
+                // Auralys Extended: render through the selected now-playing skin
+                val skin = NowPlayingSkin.fromId(activeNowPlayingSkin)
+                if (skin == NowPlayingSkin.CLASSIC) {
+                    ThumbnailImage(
+                        artworkUri = artworkUriToUse,
+                        cropArtwork = cropAlbumArt
+                    )
+                } else {
+                    NowPlayingSkins.Decorate(
+                        skin = skin,
+                        title = item.mediaMetadata.title?.toString() ?: "",
+                        artist = item.mediaMetadata.artist?.toString() ?: "",
+                        modifier = Modifier.fillMaxSize(),
+                    ) {
+                        Box(Modifier.fillMaxSize()) {
+                            ThumbnailImage(
+                                artworkUri = artworkUriToUse,
+                                cropArtwork = cropAlbumArt
+                            )
+                        }
+                    }
+                }
             }
             
             // Cast button at top-right corner of thumbnail

@@ -71,6 +71,8 @@ class MessageCodec(
             MessageTypes.SUGGESTION_RECEIVED -> SuggestionReceivedPayload.parseFrom(payload)
             MessageTypes.SUGGESTION_APPROVED -> SuggestionApprovedPayload.parseFrom(payload)
             MessageTypes.SUGGESTION_REJECTED -> SuggestionRejectedPayload.parseFrom(payload)
+            MessageTypes.VOICE_SIGNAL -> VoiceSignalPayload.parseFrom(payload)
+            MessageTypes.ROOM_SHARE -> RoomSharePayload.parseFrom(payload)
             else -> null
         }
     }

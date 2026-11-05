@@ -303,6 +303,15 @@ dependencies {
 
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.okhttp)
+    // Auralys Extended: WebRTC for Listen Together voice chat
+    implementation(libs.stream.webrtc)
+    // Auralys Extended: QR/NFC join
+    implementation(libs.zxing.core)
+    implementation(libs.mlkit.barcode)
+    implementation(libs.camerax.core)
+    implementation(libs.camerax.camera2)
+    implementation(libs.camerax.lifecycle)
+    implementation(libs.camerax.view)
     implementation(libs.ktor.client.content.negotiation)
     implementation(libs.ktor.client.encoding)
     implementation(libs.ktor.serialization.json)

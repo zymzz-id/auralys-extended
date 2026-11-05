@@ -164,6 +164,11 @@ import com.metrolist.music.constants.ShuffleModeKey
 import com.metrolist.music.constants.ShufflePlaylistFirstKey
 import com.metrolist.music.constants.SimilarContent
 import com.metrolist.music.constants.SkipSilenceInstantKey
+import com.metrolist.music.constants.BassBoostEnabledKey
+import com.metrolist.music.constants.BassBoostStrengthKey
+import com.metrolist.music.constants.VirtualizerEnabledKey
+import com.metrolist.music.constants.VirtualizerStrengthKey
+import androidx.datastore.preferences.core.edit
 import com.metrolist.music.constants.SkipSilenceKey
 import com.metrolist.music.constants.StopMusicOnTaskClearKey
 import com.metrolist.music.db.MusicDatabase
@@ -177,6 +182,7 @@ import com.metrolist.music.di.DownloadCache
 import com.metrolist.music.di.PlayerCache
 import com.metrolist.music.eq.EqualizerService
 import com.metrolist.music.eq.audio.CustomEqualizerAudioProcessor
+import com.metrolist.music.eq.audio.BassVirtualizerAudioProcessor
 import com.metrolist.music.eq.data.EQProfileRepository
 import com.metrolist.music.extensions.SilentHandler
 import com.metrolist.music.extensions.collect
@@ -430,6 +436,8 @@ class MusicService :
     private val historyReporters = HashMap<Player, YouTubeHistoryReporter>()
     private val playerNormalizationProcessors = HashMap<Player, VolumeNormalizationAudioProcessor>()
     private val playerEqualizerProcessors = HashMap<Player, CustomEqualizerAudioProcessor>()
+    private val playerBassVirtualizerProcessors = HashMap<Player, BassVirtualizerAudioProcessor>()
+    @Volatile private var bassVirtualizerProcessorRef: BassVirtualizerAudioProcessor? = null
 
     private var loudnessSetupJob: Job? = null
     private var loudnessSetupGeneration: Long = 0L
@@ -898,7 +906,6 @@ class MusicService :
             .collectLatest(scope) { (skipSilence, instantSkip) ->
                 player.skipSilenceEnabled = skipSilence
                 secondaryPlayer?.skipSilenceEnabled = skipSilence
-
                 val enableInstant = skipSilence && instantSkip
                 instantSilenceSkipEnabled.value = enableInstant
 
@@ -911,6 +918,23 @@ class MusicService :
 
                 if (!enableInstant) {
                     silenceSkipJob?.cancel()
+                }
+            }
+
+        // Auralys Extended: live-apply Bass Boost & Virtualizer preference changes
+        dataStore.data
+            .map { prefs ->
+                Triple(
+                    Pair(prefs[BassBoostEnabledKey] ?: false, prefs[BassBoostStrengthKey] ?: 0),
+                    Pair(prefs[VirtualizerEnabledKey] ?: false, prefs[VirtualizerStrengthKey] ?: 0),
+                    Unit,
+                )
+            }
+            .distinctUntilChanged()
+            .collectLatest(scope) { (bass, virt, _) ->
+                playerBassVirtualizerProcessors.values.forEach { processor ->
+                    processor.setBassBoost(bass.first, bass.second)
+                    processor.setVirtualizer(virt.first, virt.second)
                 }
             }
 
@@ -1293,6 +1317,9 @@ class MusicService :
     private fun createExoPlayer(prefs: Preferences? = null): ExoPlayer {
         val normalizationProcessor = VolumeNormalizationAudioProcessor()
         val eqProcessor = CustomEqualizerAudioProcessor()
+        val bassVirtualizerProcessor = BassVirtualizerAudioProcessor()
+        applyBassVirtualizerPrefs(bassVirtualizerProcessor, prefs)
+        bassVirtualizerProcessorRef = bassVirtualizerProcessor
 
         val silenceProcessor = SilenceDetectorAudioProcessor { handleLongSilenceDetected() }
 
@@ -1318,7 +1345,7 @@ class MusicService :
                 .setMediaSourceFactory(
                     createMediaSourceFactory(normalizationProcessor) { createdPlayer },
                 )
-                .setRenderersFactory(createRenderersFactory(normalizationProcessor, eqProcessor, silenceProcessor, useAudioTrackPlaybackParams))
+                .setRenderersFactory(createRenderersFactory(normalizationProcessor, eqProcessor, bassVirtualizerProcessor, silenceProcessor, useAudioTrackPlaybackParams))
                 .setLoadControl(
                     // Start playback once ~750ms is buffered (media3's default is 1000ms) so first
                     // audio is audible a touch sooner. min/max/after-rebuffer match the media3 1.x
@@ -1347,6 +1374,7 @@ class MusicService :
         playerSilenceProcessors[player] = silenceProcessor
         playerEqualizerProcessors[player] = eqProcessor
         equalizerService.addAudioProcessor(eqProcessor)
+        playerBassVirtualizerProcessors[player] = bassVirtualizerProcessor
 
         if (prefs != null) {
             val offload = prefs[AudioOffload] ?: false
@@ -3998,6 +4026,7 @@ class MusicService :
     private fun createRenderersFactory(
         normalizationProcessor: VolumeNormalizationAudioProcessor,
         eqProcessor: CustomEqualizerAudioProcessor,
+        bassVirtualizerProcessor: BassVirtualizerAudioProcessor,
         silenceProcessor: SilenceDetectorAudioProcessor,
         useAudioTrackPlaybackParams: Boolean,
     ) = object : DefaultRenderersFactory(this) {
@@ -4058,6 +4087,7 @@ class MusicService :
                     arrayOf(
                         normalizationProcessor,
                         eqProcessor,
+                        bassVirtualizerProcessor,
                         silenceProcessor,
                     ),
                     SilenceSkippingAudioProcessor(2_000_000, 20_000, 256),
@@ -5022,11 +5052,43 @@ class MusicService :
         }
     }
 
+    // ===== Auralys Extended: Bass Boost & Virtualizer =====
+
+    private fun applyBassVirtualizerPrefs(processor: BassVirtualizerAudioProcessor, prefs: Preferences?) {
+        val bassEnabled = prefs?.get(BassBoostEnabledKey) ?: false
+        val bassStrength = prefs?.get(BassBoostStrengthKey) ?: 0
+        val virtEnabled = prefs?.get(VirtualizerEnabledKey) ?: false
+        val virtStrength = prefs?.get(VirtualizerStrengthKey) ?: 0
+        processor.setBassBoost(bassEnabled, bassStrength)
+        processor.setVirtualizer(virtEnabled, virtStrength)
+    }
+
+    fun setBassBoost(enabled: Boolean, strength: Int) {
+        bassVirtualizerProcessorRef?.setBassBoost(enabled, strength)
+        runBlocking(Dispatchers.IO) {
+            dataStore.edit { prefs ->
+                prefs[BassBoostEnabledKey] = enabled
+                prefs[BassBoostStrengthKey] = strength
+            }
+        }
+    }
+
+    fun setVirtualizer(enabled: Boolean, strength: Int) {
+        bassVirtualizerProcessorRef?.setVirtualizer(enabled, strength)
+        runBlocking(Dispatchers.IO) {
+            dataStore.edit { prefs ->
+                prefs[VirtualizerEnabledKey] = enabled
+                prefs[VirtualizerStrengthKey] = strength
+            }
+        }
+    }
+
     private fun releaseExoPlayer(player: ExoPlayer) {
         historyReporters.remove(player)?.close()
         playerNormalizationProcessors.remove(player)
         playerSilenceProcessors.remove(player)
         playerEqualizerProcessors.remove(player)?.let(equalizerService::removeAudioProcessor)
+        playerBassVirtualizerProcessors.remove(player)
         player.release()
     }
 

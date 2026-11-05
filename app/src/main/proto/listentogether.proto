@@ -226,6 +226,22 @@ message SuggestionRejectedPayload {
   string reason = 2;
 }
 
+// Auralys Extended: voice chat signalling (WebRTC over LT WebSocket)
+message VoiceSignalPayload {
+  string from_user_id = 1;
+  string to_user_id = 2;
+  string signal_type = 3;   // offer | answer | ice | mute
+  string sdp = 4;
+  string candidate = 5;
+  bool muted = 6;
+}
+
+// Auralys Extended: QR/NFC room share payload
+message RoomSharePayload {
+  string room_code = 1;
+  string host_username = 2;
+}
+
 // Capability negotiation (first message from client)
 message ClientCapabilities {
   bool supports_protobuf = 1;

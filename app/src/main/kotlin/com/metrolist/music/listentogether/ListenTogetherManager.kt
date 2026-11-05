@@ -1773,6 +1773,26 @@ class ListenTogetherManager
         /**
          * Create a new room
          */
+        /**
+         * Auralys Extended: raw-message escape hatch (used by WebRTC voice chat).
+         */
+        fun sendRawMessage(
+            type: String,
+            payload: com.google.protobuf.MessageLite?,
+        ) {
+            try {
+                val method = client.javaClass.getDeclaredMethod(
+                    "sendMessage",
+                    String::class.java,
+                    com.google.protobuf.MessageLite::class.java,
+                )
+                method.isAccessible = true
+                method.invoke(client, type, payload)
+            } catch (e: Exception) {
+                Timber.tag(TAG).e(e, "sendRawMessage failed")
+            }
+        }
+
         fun createRoom(username: String) {
             Timber.tag(TAG).d("Creating room with username: $username")
             client.createRoom(username)

@@ -484,6 +484,24 @@
 
     <!-- Equalizer UI -->
     <string name="equalizer_header">Equalizer</string>
+    <!-- Auralys Extended -->
+    <string name="bass_virtualizer_header">Bass Boost &amp; Virtualizer</string>
+    <string name="bass_boost">Bass Boost</string>
+    <string name="virtualizer">Virtualizer</string>
+    <string name="lyric_radio_start">Start radio from this line</string>
+    <string name="skin_marketplace_title">Now-playing skins</string>
+    <string name="skin_installed">Installed</string>
+    <string name="skin_apply">Apply</string>
+    <string name="skin_applied">Applied</string>
+    <string name="lt_voice_chat">Voice chat</string>
+    <string name="lt_voice_mute">Mute</string>
+    <string name="lt_voice_unmute">Unmute</string>
+    <string name="lt_voice_leaving">Leaving voice chat…</string>
+    <string name="lt_join_qr_title">Scan to join room</string>
+    <string name="lt_share_qr">Show QR code</string>
+    <string name="lt_scan_qr">Scan QR code</string>
+    <string name="lt_nfc_available">Hold phones together to join (NFC)</string>
+    <string name="camera_permission_denied">Camera permission is required to scan QR codes</string>
     <string name="no_profiles">No equalizer profiles</string>
     <string name="import_profile">Import profile</string>
     <string name="system_equalizer">System equalizer</string>

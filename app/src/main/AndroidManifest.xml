@@ -13,6 +13,11 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- Auralys Extended: NFC + camera for Listen Together QR/NFC join -->
+    <uses-permission android:name="android.permission.NFC" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.nfc" android:required="false" />
 
     <!-- Microphone feature for music recognition (not required) -->
     <uses-feature android:name="android.hardware.microphone" android:required="false" />
@@ -86,6 +91,14 @@
                 <data android:scheme="https" />
                 <data android:host="metrolist.cc" />
                 <data android:pathPrefix="/listen" />
+            </intent-filter>
+
+            <!-- Auralys Extended: QR/NFC deep link metrolist://listen?room=CODE -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="metrolist" android:host="listen" />
             </intent-filter>
 
             <!-- Youtube filter -->

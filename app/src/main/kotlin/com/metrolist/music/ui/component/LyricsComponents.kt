@@ -179,6 +179,8 @@ internal fun LyricsActionOverlay(
     onSyncClick: () -> Unit,
     onCancelSelection: () -> Unit,
     onShareSelection: () -> Unit,
+    onLyricRadio: (() -> Unit)? = null,
+    radioSeed: String? = null,
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -217,6 +219,22 @@ internal fun LyricsActionOverlay(
                     Spacer(Modifier.width(8.dp))
                     Text(stringResource(R.string.share))
                 }
+            }
+        }
+
+        // Auralys Extended: radio from the selected lyric segment
+        AnimatedVisibility(
+            visible = isSelectionModeActive && anySelected && onLyricRadio != null,
+            enter = slideInVertically { it } + fadeIn(),
+            exit = slideOutVertically { it } + fadeOut()
+        ) {
+            FilledTonalButton(
+                onClick = { onLyricRadio?.invoke() },
+                modifier = Modifier.align(Alignment.BottomCenter)
+            ) {
+                Icon(painterResource(R.drawable.radio), stringResource(R.string.lyric_radio_start), Modifier.size(20.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(R.string.lyric_radio_start))
             }
         }
     }

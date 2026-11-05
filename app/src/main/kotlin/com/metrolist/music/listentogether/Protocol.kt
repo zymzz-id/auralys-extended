@@ -39,6 +39,9 @@ object MessageTypes {
     const val SUGGESTION_RECEIVED = "suggestion_received"
     const val SUGGESTION_APPROVED = "suggestion_approved"
     const val SUGGESTION_REJECTED = "suggestion_rejected"
+    // Auralys Extended
+    const val VOICE_SIGNAL = "voice_signal"
+    const val ROOM_SHARE = "room_share"
 }
 
 object PlaybackActions {
@@ -70,6 +73,9 @@ typealias TransferHostPayload = Listentogether.TransferHostPayload
 typealias SuggestTrackPayload = Listentogether.SuggestTrackPayload
 typealias ApproveSuggestionPayload = Listentogether.ApproveSuggestionPayload
 typealias RejectSuggestionPayload = Listentogether.RejectSuggestionPayload
+// Auralys Extended
+typealias VoiceSignalPayload = Listentogether.VoiceSignalPayload
+typealias RoomSharePayload = Listentogether.RoomSharePayload
 typealias RoomCreatedPayload = Listentogether.RoomCreatedPayload
 typealias JoinRequestPayload = Listentogether.JoinRequestPayload
 typealias JoinApprovedPayload = Listentogether.JoinApprovedPayload

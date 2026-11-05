@@ -1106,6 +1106,16 @@ class ListenTogetherClient
                 val (msgType, payloadBytes) = codec.decode(data)
 
                 when (msgType) {
+                    // Auralys Extended: WebRTC voice chat signalling relay
+                    MessageTypes.VOICE_SIGNAL -> {
+                        val payload = codec.decodePayload(msgType, payloadBytes) as? VoiceSignalPayload ?: return
+                        ListenTogetherVoiceChat.onVoiceSignal(
+                            fromUserId = payload.fromUserId,
+                            type = payload.signalType,
+                            sdp = payload.sdp.ifEmpty { null },
+                            candidateJson = payload.candidate.ifEmpty { null },
+                        )
+                    }
                     MessageTypes.ROOM_CREATED -> {
                         val payload = codec.decodePayload(msgType, payloadBytes) as? RoomCreatedPayload ?: return
                         _userId.value = payload.userId
@@ -1603,6 +1613,28 @@ class ListenTogetherClient
 
         private fun sendMessageNoPayload(type: String) {
             sendMessage(type, null)
+        }
+
+        /**
+         * Auralys Extended: send a WebRTC voice-chat signalling message.
+         */
+        fun sendVoiceSignal(
+            fromUserId: String,
+            toUserId: String,
+            signalType: String,
+            sdp: String? = null,
+            candidate: String? = null,
+            muted: Boolean? = null,
+        ) {
+            val payload = VoiceSignalPayload.newBuilder().apply {
+                this.fromUserId = fromUserId
+                this.toUserId = toUserId
+                this.signalType = signalType
+                sdp?.let { this.sdp = it }
+                candidate?.let { this.candidate = it }
+                muted?.let { this.muted = it }
+            }.build()
+            sendMessage(MessageTypes.VOICE_SIGNAL, payload)
         }
 
         // Public API methods

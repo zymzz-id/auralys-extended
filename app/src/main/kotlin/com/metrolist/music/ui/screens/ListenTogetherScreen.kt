@@ -94,6 +94,9 @@ import com.metrolist.music.constants.ListenTogetherUsernameKey
 import com.metrolist.music.listentogether.ConnectionState
 import com.metrolist.music.listentogether.JoinRequestPayload
 import com.metrolist.music.listentogether.ListenTogetherEvent
+import com.metrolist.music.listentogether.ListenTogetherShare
+import com.metrolist.music.listentogether.ListenTogetherVoiceChat
+import com.metrolist.music.listentogether.QrCodeImage
 import com.metrolist.music.listentogether.RoomRole
 import com.metrolist.music.listentogether.SuggestionReceivedPayload
 import com.metrolist.music.listentogether.UserInfo
@@ -665,6 +668,65 @@ private fun RoomStatusCard(
                     .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
+            // Auralys Extended: voice chat toggle
+            val voiceState by ListenTogetherVoiceChat.state.collectAsStateWithLifecycle()
+            var voiceRequested by remember { mutableStateOf(voiceState.active) }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                FilledTonalButton(
+                    onClick = {
+                        if (voiceState.active) {
+                            ListenTogetherVoiceChat.leaveVoice()
+                            voiceRequested = false
+                        } else {
+                            ListenTogetherVoiceChat.init(context)
+                            ListenTogetherVoiceChat.joinVoice()
+                            voiceRequested = true
+                        }
+                    },
+                    shape = RoundedCornerShape(12.dp),
+                ) {
+                    Icon(
+                        painter = painterResource(if (voiceState.active) R.drawable.volume_up else R.drawable.mic),
+                        contentDescription = stringResource(R.string.lt_voice_chat),
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        when {
+                            voiceState.active && voiceState.muted -> stringResource(R.string.lt_voice_unmute)
+                            voiceState.active -> stringResource(R.string.lt_voice_mute)
+                            else -> stringResource(R.string.lt_voice_chat)
+                        }
+                    )
+                }
+                if (voiceState.active && !voiceState.muted) {
+                    FilledTonalButton(
+                        onClick = { ListenTogetherVoiceChat.setMuted(true) },
+                        shape = RoundedCornerShape(12.dp),
+                    ) {
+                        Text(stringResource(R.string.lt_voice_mute))
+                    }
+                } else if (voiceState.active) {
+                    FilledTonalButton(
+                        onClick = { ListenTogetherVoiceChat.setMuted(false) },
+                        shape = RoundedCornerShape(12.dp),
+                    ) {
+                        Text(stringResource(R.string.lt_voice_unmute))
+                    }
+                }
+            }
+            voiceState.error?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+            Spacer(modifier = Modifier.height(12.dp))
             Text(
                 text = stringResource(R.string.room_code),
                 style = MaterialTheme.typography.labelLarge,
@@ -699,6 +761,45 @@ private fun RoomStatusCard(
                     remember(roomCode) {
                         "https://metrolist.cc/listen?code=$roomCode"
                     }
+                // Auralys Extended: QR / NFC share row
+                var showQr by remember { mutableStateOf(false) }
+                LaunchedEffect(roomCode) {
+                    (context as? android.app.Activity)?.let { activity ->
+                        ListenTogetherShare.enableNfcPush(activity, roomCode)
+                    }
+                }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    FilledTonalButton(
+                        onClick = { showQr = !showQr },
+                        shape = RoundedCornerShape(12.dp),
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.qr_code),
+                            contentDescription = stringResource(R.string.lt_share_qr),
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(stringResource(R.string.lt_share_qr))
+                    }
+                }
+                if (showQr) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    QrCodeImage(
+                        content = ListenTogetherShare.roomDeepLink(roomCode),
+                        modifier = Modifier.size(180.dp),
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = stringResource(R.string.lt_nfc_available),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),

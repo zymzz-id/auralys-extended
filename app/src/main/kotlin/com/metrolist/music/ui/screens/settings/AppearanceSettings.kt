@@ -82,6 +82,8 @@ import com.metrolist.music.constants.MiniPlayerBackgroundStyle
 import com.metrolist.music.constants.MiniPlayerBackgroundStyleKey
 import com.metrolist.music.constants.PlayerBackgroundStyle
 import com.metrolist.music.constants.PlayerBackgroundStyleKey
+import com.metrolist.music.constants.NowPlayingSkin
+import com.metrolist.music.constants.NowPlayingSkinKey
 import com.metrolist.music.constants.PlayerButtonsStyle
 import com.metrolist.music.constants.PlayerButtonsStyleKey
 import com.metrolist.music.constants.PureBlackMiniPlayerKey
@@ -197,6 +199,12 @@ fun AppearanceSettings(
             PlayerBackgroundStyleKey,
             defaultValue = PlayerBackgroundStyle.DEFAULT,
         )
+
+    // Auralys Extended: now-playing skin marketplace
+    val (skinPref, onSkinPrefChange) =
+        rememberPreference(NowPlayingSkinKey, defaultValue = "classic")
+    val skin = NowPlayingSkin.fromId(skinPref)
+    var showSkinDialog by rememberSaveable { mutableStateOf(false) }
 
     val (defaultOpenTab, onDefaultOpenTabChange) =
         rememberEnumPreference(
@@ -558,6 +566,21 @@ fun AppearanceSettings(
                     PlayerBackgroundStyle.BLUR -> stringResource(R.string.player_background_blur)
                 }
             },
+        )
+    }
+
+    // Auralys Extended: skin marketplace picker
+    if (showSkinDialog) {
+        EnumDialog(
+            onDismiss = { showSkinDialog = false },
+            onSelect = {
+                onSkinPrefChange(it.id)
+                showSkinDialog = false
+            },
+            title = stringResource(R.string.skin_marketplace_title),
+            current = skin,
+            values = NowPlayingSkin.entries.toList(),
+            valueText = { it.label },
         )
     }
 
@@ -1138,6 +1161,13 @@ fun AppearanceSettings(
                             )
                         },
                         onClick = { showPlayerBackgroundDialog = true },
+                    ),
+                    // Auralys Extended: now-playing skin marketplace
+                    Material3SettingsItem(
+                        icon = painterResource(R.drawable.radio),
+                        title = { Text(stringResource(R.string.skin_marketplace_title)) },
+                        description = { Text(skin.label) },
+                        onClick = { showSkinDialog = true },
                     ),
                     Material3SettingsItem(
                         icon = painterResource(R.drawable.hide_image),

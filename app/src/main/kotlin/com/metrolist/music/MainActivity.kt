@@ -150,6 +150,7 @@ import com.metrolist.music.constants.ForceBottomNavBarKey
 import com.metrolist.music.constants.LastSeenVersionKey
 import com.metrolist.music.constants.ListenTogetherInTopBarKey
 import com.metrolist.music.constants.ListenTogetherUsernameKey
+import com.metrolist.music.listentogether.ListenTogetherShare
 import com.metrolist.music.constants.LyricsProviderOrderKey
 import com.metrolist.music.constants.MiniPlayerBottomSpacing
 import com.metrolist.music.constants.MiniPlayerHeight
@@ -284,6 +285,14 @@ class MainActivity : FragmentActivity() {
                     playerConnection = PlayerConnection(this@MainActivity, service, database, lifecycleScope)
                     playerConnectionSnapshot = playerConnection
                     listenTogetherManager.setPlayerConnection(playerConnection)
+                    // Auralys Extended: wire WebRTC voice-chat signalling to the LT socket
+                    com.metrolist.music.listentogether.ListenTogetherVoiceChat.init(this@MainActivity)
+                    com.metrolist.music.listentogether.ListenTogetherVoiceChat.signallingSender = { payload ->
+                        listenTogetherManager.sendRawMessage(
+                            com.metrolist.music.listentogether.MessageTypes.VOICE_SIGNAL,
+                            payload,
+                        )
+                    }
                 }
             }
 
@@ -1591,6 +1600,27 @@ class MainActivity : FragmentActivity() {
         intent: Intent,
         navController: NavHostController,
     ) {
+        // Auralys Extended: NFC NDEF tap — no data URI, handled before uri extraction
+        if (intent.action == android.nfc.NfcAdapter.ACTION_NDEF_DISCOVERED) {
+            val messages = intent.getParcelableArrayExtra(android.nfc.NfcAdapter.EXTRA_NDEF_MESSAGES)
+            val ndefMessages = messages?.filterIsInstance<android.nfc.NdefMessage>()
+            val room: String? = ndefMessages
+                ?.flatMap { it.records.toList() }
+                ?.firstNotNullOfOrNull { record ->
+                    when {
+                        record.toUri() != null -> ListenTogetherShare.extractRoomCode(record.toUri().toString())
+                        String(record.type) == ListenTogetherShare.NFC_MIME ->
+                            ListenTogetherShare.extractRoomCode(String(record.payload).dropWhile { it.code < 32 })
+                        else -> null
+                    }
+                }
+            if (room != null) {
+                val username = dataStore.get(ListenTogetherUsernameKey, "").ifBlank { "Guest" }
+                listenTogetherManager.joinRoom(room, username)
+            }
+            return
+        }
+
         val uri = intent.data ?: intent.extras?.getString(Intent.EXTRA_TEXT)?.toUri() ?: return
         intent.data = null
         intent.removeExtra(Intent.EXTRA_TEXT)
